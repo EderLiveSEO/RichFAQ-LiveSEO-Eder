@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de FAQ Universal</title>
+    <!-- 
+        Evita indexação pelos buscadores, pois é uma ferramenta interna.
+    -->
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        /* =========================================
+           ESTILOS GERAIS E VARIÁVEIS CSS
+           ========================================= */
+
+        /* 
+           Define variáveis CSS (Custom Properties) para facilitar a manutenção de cores
+           e a implementação do Modo Noturno (Dark Mode).
+        */
+        :root {
+            --primary-color: #e65100;
+            /* Laranja vibrante principal */
+            --secondary-color: #6a1b9a;
+            /* Roxo secundário (caso necessário) */
+            --bg-color: #f4f6f8;
+            /* Fundo da página (Claro) */
+            --container-bg: #fff;
+            /* Fundo do container principal (Claro) */
+            --text-color: #333;
+            /* Cor do texto padrão */
+            --border-color: #ddd;
+            /* Cor das bordas */
+            --input-bg: #fff;
+            /* Fundo dos inputs */
+        }
+
+        /* 
+           Substitui os valores das variáveis quando a classe .dark-mode é aplicada ao body.
+        */
+        body.dark-mode {
+            --bg-color: #121212;
+            /* Fundo escuro */
+            --container-bg: #1e1e1e;
+            /* Fundo do container escuro */
+            --text-color: #e0e0e0;
+            /* Texto claro */
+            --border-color: #444;
+            /* Bordas mais sutis */
+            --input-bg: #2d2d2d;
+            /* Inputs escuros */
+        }
+
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            /* Suaviza a troca de temas */
+        }
+
+        /* =========================================
+           LAYOUT PRINCIPAL
+           ========================================= */
+        .generator-container {
+            width: 95%;
+            /* Ocupa quase toda a largura para melhor visualização */
+            max-width: 1400px;
+            /* Limite máximo aumentado para telas grandes */
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            /* Divide a tela em duas colunas iguais */
+            gap: 30px;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+
+        /* Botão para alternar Modo Escuro */
+        .dark-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+
+        /* Estilização do Título Principal */
+        h1.app-title {
+            grid-column: 1 / -1;
+            /* Ocupa as duas colunas */
+            text-align: center;
+            /* Gradiente de texto */
+            background: linear-gradient(90deg, #e65100, #ff9800);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* =========================================
+           ÁREA DE ENTRADA (INPUTS)
+           ========================================= */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            /* Realce ao focar */
+        }
+
+        .input-group textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+
+        /* Botões */
+        .btn-generate {
+            background-color: #1a5c36;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 10px;
+        }
+
+        .btn-generate:hover {
+            background-color: #14472a;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #666;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+
+        /* =========================================
+           ÁREA DE SAÍDA (OUTPUTS)
+           ========================================= */
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .output-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            transition: background-color 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-box h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        /* Área de código (HTML/JSON) */
+        .code-textarea {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            font-size: 12px;
+            background: #2d2d2d;
+            /* Sempre escuro para simular IDE */
+            color: #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            resize: vertical;
+            border: 1px solid #444;
+        }
+
+        /* Container de visualização (Preview) */
+        #previewContainer {
+            min-height: 400px;
+            /* Altura mínima garantida para visualização confortável */
+            background-color: var(--container-bg);
+            padding: 20px;
+            border: 1px dashed var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Media Query para telas menores */
+        @media (max-width: 900px) {
+            .generator-container {
+                grid-template-columns: 1fr;
+                /* Empilha as colunas em mobile/tablet */
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="generator-container">
+        <!-- Botão para alternar tema -->
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Alternar Modo Escuro">🌓</button>
+
+        <h1 class="app-title">Gerador de FAQ Universal</h1>
+
+        <!-- COLUNA DA ESQUERDA: Inputs -->
+        <div class="input-section">
+            <div class="input-group">
+                <label for="faqTitle">Título da Seção</label>
+                <input type="text" id="faqTitle" placeholder="Ex: Dúvidas sobre Petiscos para Cachorro">
+            </div>
+
+            <div class="input-group">
+                <label for="faqContent">Perguntas e Respostas</label>
+                <textarea id="faqContent" placeholder="Cole aqui seu conteúdo.
+O sistema detectará automaticamente as perguntas (linhas terminando em ?) e as respostas (linhas seguintes).
+
+Exemplo:
+Quais são os tipos de petiscos?
+Existem diversas opções como Bifinhos e Biscoitos.
+
+Pode dar para filhotes?
+Sim, mas com cautela dependendo da idade."></textarea>
+                <small style="color: #666; margin-top: 5px; display: block;">Dica: Deixe uma linha em branco entre cada
+                    par de pergunta/resposta para facilitar a leitura.</small>
+            </div>
+
+            <!-- Guia de Classes para referência do usuário -->
+            <div
+                style="background: #fff3cd; padding: 15px; border-radius: 6px; border: 1px solid #ffeeba; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: #856404; font-size: 14px;">🛠️ Guia de Classes (Estrutura HTML)</h4>
+                <p style="font-size: 13px; color: #856404; margin-bottom: 10px;">Use estas classes para criar seu CSS:
+                </p>
+                <ul style="font-size: 12px; color: #555; padding-left: 20px; line-height: 1.6;">
+                    <li><code>.faq-container</code>: Container principal.</li>
+                    <li><code>.faq-title</code>: Título da seção (H2).</li>
+                    <li><code>.faq-item</code>: Cada item de pergunta/resposta (`&lt;details&gt;`).</li>
+                    <li><code>.faq-question</code>: A pergunta (`&lt;summary&gt;`).</li>
+                    <li><code>.faq-answer</code>: A resposta (dentro de uma `&lt;div&gt;`).</li>
+                    <li><code>details[open]</code>: Estilo quando a resposta está aberta.</li>
+                </ul>
+            </div>
+
+            <!-- Área de Configuração de Estilos e Salvamento -->
+            <div class="input-group">
+                <label for="styleConfig">Configuração de Estilo</label>
+                <div
+                    style="background: var(--bg-color); padding: 15px; border-radius: 6px; border: 1px dashed var(--border-color);">
+
+                    <!-- Controles de Salvar/Carregar -->
+                    <div
+                        style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                        <label
+                            style="font-size: 13px; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 8px;">
+                            💾 Salvar/Carregar Estilos
+                        </label>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="styleNameInput" placeholder="Nome do estilo (ex: Azul Moderno)"
+                                style="flex: 1; min-width: 150px;">
+                            <button onclick="saveCurrentStyle()" class="btn-secondary">Salvar CSS</button>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                            <select id="savedStylesSelect" onchange="loadSelectedStyle()" style="flex: 1;">
+                                <option value="">--- Selecione um estilo salvo ---</option>
+                            </select>
+                            <button onclick="deleteSelectedStyle()" class="btn-secondary"
+                                style="background-color: #d32f2f;">Excluir</button>
+                        </div>
+                    </div>
+
+                    <!-- Editor de CSS -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label for="customCss"
+                            style="font-size: 13px; font-weight: normal; color: var(--text-color); display: block; margin: 0;">
+                            🎨 Personalizar CSS (Edite abaixo para mudar o visual)
+                        </label>
+                        <button onclick="loadDefaultCSS()"
+                            style="font-size: 11px; padding: 2px 8px; cursor: pointer;">Restaurar Padrão</button>
+                    </div>
+
+                    <textarea id="customCss" oninput="updatePreviewStyles()" placeholder="O CSS aparecerá aqui..."
+                        style="min-height: 150px; font-family: monospace; font-size: 12px;"></textarea>
+                </div>
+            </div>
+
+            <button class="btn-generate" onclick="generateFAQ()">Gerar Código FAQ</button>
+        </div>
+
+        <!-- COLUNA DA DIREITA: Outputs -->
+        <div class="output-section">
+            <div class="output-box">
+                <h3>Pré-visualização (Preview)</h3>
+                <div id="previewContainer">
+                    <p style="color: #999; font-style: italic; padding: 20px;">Clique em "Gerar Código FAQ" para ver o
+                        resultado...</p>
+                </div>
+            </div>
+
+            <div class="output-box">
+                <h3>Código HTML (Para o Site)</h3>
+                <textarea id="htmlOutput" class="code-textarea" readonly></textarea>
+                <button onclick="copyToClipboard('htmlOutput')"
+                    style="margin-top: 5px; padding: 5px 10px; cursor: pointer;">Copiar HTML</button>
+            </div>
+
+            <div class="output-box">
+                <h3>Dados Estruturados (JSON-LD)</h3>
+                <textarea id="jsonOutput" class="code-textarea" readonly></textarea>
+                <button onclick="copyToClipboard('jsonOutput')"
+                    style="margin-top: 5px; padding: 5px 10px; cursor: pointer;">Copiar JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Inicialização da Página
+         * Carrega preferências salvas, estilos e configura o estado inicial.
+         */
+        window.onload = function () {
+            loadSavedStylesList(); // Popula o dropdown com estilos do LocalStorage
+
+            // Verifica preferência de Dark Mode salva
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Se textarea estiver vazia, carrega o CSS padrão
+            if (!document.getElementById('customCss').value) {
+                loadDefaultCSS();
+            }
+
+            // Gera o preview inicial (aplica o CSS)
+            updatePreviewStyles();
+        };
+
+        /**
+         * Alterna o modo escuro (Dark Mode)
+         * Adiciona/remove classe no body e salva preferência no LocalStorage.
+         */
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        /* =========================================
+           SISTEMA DE PAGAMENTO DE ESTILOS (LocalStorage)
+           ========================================= */
+
+        /**
+         * Salva o CSS atual no LocalStorage com o nome fornecido.
+         */
+        function saveCurrentStyle() {
+            const name = document.getElementById('styleNameInput').value.trim();
+            const css = document.getElementById('customCss').value;
+
+            if (!name) {
+                alert('Por favor, digite um nome para o estilo.');
+                return;
+            }
+
+            if (!css) {
+                alert('O campo de CSS está vazio.');
+                return;
+            }
+
+            // Recupera objeto de estilos ou cria novo
+            let savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+
+            // Salva/Sobrescreve a chave com o nome do estilo
+            savedStyles[name] = css;
+            localStorage.setItem('faqSavedStyles', JSON.stringify(savedStyles));
+
+            alert(`Estilo "${name}" salvo com sucesso!`);
+            loadSavedStylesList(); // Atualiza a lista visual
+
+            // Seleciona o estilo recém-salvo no dropdown
+            document.getElementById('savedStylesSelect').value = name;
+        }
+
+        /**
+         * Carrega a lista de estilos salvos no elemento <select>.
+         */
+        function loadSavedStylesList() {
+            const select = document.getElementById('savedStylesSelect');
+            const savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+
+            // Reseta opções, mantendo apenas a padrão
+            select.innerHTML = '<option value="">--- Selecione um estilo salvo ---</option>';
+
+            // Cria uma opção para cada estilo salvo
+            Object.keys(savedStyles).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        /**
+         * Aplica o estilo selecionado no dropdown ao editor e preview.
+         */
+        function loadSelectedStyle() {
+            const select = document.getElementById('savedStylesSelect');
+            const name = select.value;
+
+            if (!name) return;
+
+            const savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+            const css = savedStyles[name];
+
+            if (css) {
+                document.getElementById('customCss').value = css;
+                updatePreviewStyles();
+                // Preenche o input de nome para facilitar edição
+                document.getElementById('styleNameInput').value = name;
+            }
+        }
+
+        /**
+         * Exclui o estilo atualmente selecionado.
+         */
+        function deleteSelectedStyle() {
+            const select = document.getElementById('savedStylesSelect');
+            const name = select.value;
+
+            if (!name) {
+                alert('Selecione um estilo para excluir.');
+                return;
+            }
+
+            if (confirm(`Tem certeza que deseja excluir o estilo "${name}"?`)) {
+                let savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+                delete savedStyles[name];
+                localStorage.setItem('faqSavedStyles', JSON.stringify(savedStyles));
+
+                loadSavedStylesList();
+                alert('Estilo excluído.');
+                document.getElementById('styleNameInput').value = '';
+            }
+        }
+
+        /* =========================================
+           LÓGICA PRINCIPAL DO GERADOR
+           ========================================= */
+
+        /**
+         * Função principal que processa o texto, gera HTML e JSON-LD.
+         */
+        function generateFAQ() {
+            const title = document.getElementById('faqTitle').value.trim();
+            const content = document.getElementById('faqContent').value;
+
+            // Validação básica
+            if (!content) {
+                alert('Por favor, insira o conteúdo das perguntas e respostas.');
+                return;
+            }
+
+            const customCss = document.getElementById('customCss').value.trim();
+
+            // --- Parsing (Análise do Texto) ---
+            // Divide o texto em linhas e identifica perguntas pelo ponto de interrogação (?)
+            const lines = content.split('\n');
+            const items = [];
+            let currentQuestion = null;
+            let currentAnswerBuffer = [];
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return; // Pula linhas vazias
+
+                // Se termina com '?' ou é a primeira linha e ainda não temos pergunta
+                if (trimmedLine.endsWith('?') || (items.length === 0 && currentQuestion === null)) {
+                    // Se já tínhamos uma pergunta em aberto, salva ela antes de começar a nova
+                    if (currentQuestion) {
+                        items.push({
+                            question: currentQuestion,
+                            answer: currentAnswerBuffer.join('<br>').trim()
+                        });
+                    }
+                    // Inicia nova pergunta
+                    currentQuestion = trimmedLine;
+                    currentAnswerBuffer = [];
+                } else {
+                    // É parte da resposta
+                    if (currentQuestion) {
+                        currentAnswerBuffer.push(trimmedLine);
+                    }
+                }
+            });
+
+            // Adiciona o último item processado
+            if (currentQuestion && currentAnswerBuffer.length > 0) {
+                items.push({
+                    question: currentQuestion,
+                    answer: currentAnswerBuffer.join('<br>').trim()
+                });
+            }
+
+            if (items.length === 0) {
+                alert('Não conseguimos identificar perguntas. Verifique se as perguntas terminam com "?"');
+                return;
+            }
+
+            // --- Geração do HTML Estrutural ---
+            let htmlInner = '';
+            if (title) {
+                htmlInner += `<h2 class="faq-title">${escapeHtml(title)}</h2>\n\n`;
+            }
+
+            items.forEach(item => {
+                // Monta estrutura <details><summary>
+                htmlInner += `<details class="faq-item"><summary class="faq-question">${escapeHtml(item.question)}</summary>\n\n<div class="faq-answer">${formatAnswer(item.answer)}</div>\n</details>\n\n`;
+            });
+
+            // --- Preparação do CSS ---
+            // Garante que o CSS esteja envolto em tags <style> se necessário
+            let cssBlock = '';
+            if (customCss) {
+                if (customCss.includes('<style')) {
+                    cssBlock = customCss;
+                } else {
+                    cssBlock = `<style type="text/css">\n${customCss}\n</style>`;
+                }
+            }
+
+            // HTML Final para copiar
+            const finalHtml = `${cssBlock}
+<div class="faq-container">
+${htmlInner}</div>`;
+
+            // --- Geração do JSON-LD (Schema.org) ---
+            const schemaData = {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": items.map(item => ({
+                    "@type": "Question",
+                    "name": item.question,
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": item.answer
+                    }
+                }))
+            };
+
+            const finalJson = `<script type="application/ld+json">\n${JSON.stringify(schemaData, null, 2)}\n<\/script>`;
+
+            // --- Atualização do Preview ---
+            const previewContainer = document.getElementById('previewContainer');
+            updatePreviewStyles(); // Assegura estilos atualizados
+
+            // Renderiza o HTML no container de preview
+            previewContainer.innerHTML = `<div class="faq-container" style="width: 100%;">
+                ${htmlInner}
+            </div>`;
+
+            // Preenche os textareas de saída
+            document.getElementById('htmlOutput').value = finalHtml;
+            document.getElementById('jsonOutput').value = finalJson;
+        }
+
+        /**
+         * Atualiza os estilos <style> no cabeçalho para refletir o editor CSS em tempo real.
+         * Usado tanto no Preview quanto na inicialização.
+         */
+        function updatePreviewStyles() {
+            const customCss = document.getElementById('customCss').value;
+            const previewStyleId = 'preview-custom-style';
+
+            // Remove estilo anterior para evitar duplicação/conflito
+            let existingStyle = document.getElementById(previewStyleId);
+            if (existingStyle) existingStyle.remove();
+
+            if (customCss && customCss.trim() !== '') {
+                const styleEl = document.createElement('style');
+                styleEl.id = previewStyleId;
+                // Remove tags <style> se o usuário as incluiu no input
+                const cleanCss = customCss.replace(/<\/?style[^>]*>/gi, '');
+                styleEl.textContent = cleanCss;
+                document.head.appendChild(styleEl);
+            }
+        }
+
+        /**
+         * Define o CSS padrão da ferramenta.
+         */
+        function loadDefaultCSS() {
+            const defaultCSS = `/* Container Principal */
+.faq-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  font-family: 'Open Sans', Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Título da Seção */
+.faq-title {
+  font-size: 24px;
+  color: #e65100;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #f2f2f2;
+  padding-bottom: 10px;
+}
+
+/* Item da FAQ (Detalhes) */
+details.faq-item {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+details.faq-item:hover {
+  border-color: #e65100;
+}
+
+details.faq-item[open] {
+  border-color: #1a5c36;
+  background-color: #fcfcfc;
+}
+
+/* Pergunta (Summary) */
+summary.faq-question {
+  padding: 18px 20px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Remove triângulo padrão */
+summary.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+/* Ícone Personalizado (+ / -) */
+summary.faq-question::after {
+  content: '+';
+  font-size: 22px;
+  color: #e65100;
+  font-weight: bold;
+  transition: transform 0.2s;
+}
+
+details[open] summary.faq-question::after {
+  content: '-';
+  color: #1a5c36;
+}
+
+/* Resposta */
+.faq-answer {
+  padding: 0 20px 20px 20px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.6;
+  border-top: 1px solid transparent;
+}
+
+details[open] .faq-answer {
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+/* Ajuste Mobile */
+@media (max-width: 768px) {
+  .faq-title { font-size: 20px; }
+  summary.faq-question { font-size: 15px; padding: 15px; }
+}`;
+            document.getElementById('customCss').value = defaultCSS;
+            updatePreviewStyles();
+        }
+
+        /**
+         * Utilities
+         */
+
+        // Escapa caracteres HTML para prevenir XSS e quebra de layout
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Formata a resposta (pode ser expandido no futuro para Markdown simples)
+        function formatAnswer(text) {
+            return text;
+        }
+
+        // Copia o conteúdo de um elemento para a área de transferência
+        function copyToClipboard(elementId) {
+            const copyText = document.getElementById(elementId);
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Código copiado!");
+        }
+    </script>
+</body>
+
+</html>
