@@ -36,4 +36,4 @@ O objetivo principal é permitir que qualquer pessoa crie seções de FAQ de alt
 - JavaScript (Vanilla)
 
 ---
-*Desenvolvido pela equipe LiveSEO.*
+*Desenvolvido por Eder e equipe LiveSEO.*
