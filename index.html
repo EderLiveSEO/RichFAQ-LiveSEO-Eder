@@ -9,6 +9,8 @@
         Evita indexação pelos buscadores, pois é uma ferramenta interna.
     -->
     <meta name="robots" content="noindex, nofollow">
+    <!-- Importando a biblioteca marked para processar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         /* =========================================
            ESTILOS GERAIS E VARIÁVEIS CSS
@@ -369,6 +371,23 @@
 
         <!-- COLUNA DA ESQUERDA: Inputs -->
         <div class="input-section">
+            <!-- Seleção de Modo -->
+            <div class="input-group"
+                style="background: var(--bg-color); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <label style="margin-bottom: 10px;">Tipo de Layout</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                        <input type="radio" name="layoutMode" value="accordion" checked style="width: auto;">
+                        Accordion / FAQ
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                        <input type="radio" name="layoutMode" value="seo-text" style="width: auto;"
+                            onchange="updateCssGuide()">
+                        Texto Expandível / SEO
+                    </label>
+                </div>
+            </div>
+
             <div class="input-group">
                 <label for="faqTitle">Título da Seção</label>
                 <input type="text" id="faqTitle" placeholder="Ex: Perguntas Frequentes - SEO">
@@ -379,12 +398,17 @@
                 <textarea id="faqContent" placeholder="Cole aqui seu conteúdo.
 O sistema detectará automaticamente as perguntas (linhas terminando em ?) e as respostas (linhas seguintes).
 
+Suporta Markdown nas respostas!
+
 Exemplo:
 O que é tráfego orgânico?
 É o conjunto de visitas geradas espontaneamente, sem anúncios.
 
+*   Vantagem 1
+*   Vantagem 2
+
 Quanto tempo demora para ranquear?
-Varia de acordo com a concorrência e autoridade do domínio."></textarea>
+Varia de acordo com a **concorrência** e autoridade do domínio."></textarea>
                 <small style="color: var(--text-muted); margin-top: 8px; display: block; font-size: 0.85rem;">
                     💡 Dica: Deixe uma linha em branco entre cada par de pergunta/resposta.
                 </small>
@@ -395,7 +419,10 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
                 style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: var(--radius-md); border: 1px solid rgba(255, 152, 0, 0.2); margin-bottom: 20px;">
                 <h4 style="margin-top: 0; color: #e65100; font-size: 14px; margin-bottom: 8px;">🛠️ Todas as Classes CSS
                     Geradas</h4>
-                <ul style="font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.6; margin: 0;">
+
+                <!-- Guia Accordion -->
+                <ul id="guideAccordion"
+                    style="font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.6; margin: 0;">
                     <li><code>.faq-container</code>: Div principal que envolve tudo</li>
                     <li><code>.faq-title</code>: Tag &lt;h2&gt; do título da seção</li>
                     <li><code>.faq-item</code>: Tag &lt;details&gt; de cada pergunta</li>
@@ -403,6 +430,16 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
                     <li><code>.faq-answer</code>: Div interna com a resposta</li>
                     <li><code>details[open]</code>: Seletor para estado "aberto"</li>
                     <li><code>summary::-webkit-details-marker</code>: Marcador padrão (oculto)</li>
+                </ul>
+
+                <!-- Guia SEO Text -->
+                <ul id="guideSeo"
+                    style="display: none; font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.6; margin: 0;">
+                    <li><code>.seo-text-container</code>: Container principal do box</li>
+                    <li><code>.seo-toggle</code>: Checkbox oculto (controla estado)</li>
+                    <li><code>.seo-content</code>: Área do texto (expande/contrai)</li>
+                    <li><code>.seo-btn-label</code>: O botão "Ler mais/menos" (Label)</li>
+                    <li><code>.seo-content h2/h3</code>: Títulos e Subtítulos</li>
                 </ul>
             </div>
 
@@ -510,7 +547,96 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
 
             // Gera o preview inicial (aplica o CSS)
             updatePreviewStyles();
+
+            // Configura o marked para suporte máximo
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    headerIds: true,
+                    mangle: false
+                });
+            }
+
+            // Inicializa o Smart Paste
+            initSmartPaste();
+
+            // Adiciona listener para o radio 'accordion' também para garantir
+            document.querySelectorAll('input[name="layoutMode"]').forEach(radio => {
+                radio.addEventListener('change', updateCssGuide);
+            });
+
+            // Inicializa guia correto
+            updateCssGuide();
         };
+
+        /**
+         * Atualiza o guia de classes CSS com base no modo selecionado
+         */
+        function updateCssGuide() {
+            const mode = document.querySelector('input[name="layoutMode"]:checked').value;
+            const guideAccordion = document.getElementById('guideAccordion');
+            const guideSeo = document.getElementById('guideSeo');
+
+            if (mode === 'accordion') {
+                guideAccordion.style.display = 'block';
+                guideSeo.style.display = 'none';
+            } else {
+                guideAccordion.style.display = 'none';
+                guideSeo.style.display = 'block';
+            }
+        }
+
+        /**
+         * Inicializa o recurso de "Smart Paste" para links em Markdown.
+         * Ao colar uma URL sobre um texto selecionado, transforma em [texto](url).
+         * Agora aplica-se tanto ao TEXTAREA de conteúdo quanto ao INPUT de título.
+         */
+        function initSmartPaste() {
+            const inputs = [
+                document.getElementById('faqContent'),
+                document.getElementById('faqTitle')
+            ];
+
+            inputs.forEach(inputEl => {
+                if (!inputEl) return;
+
+                inputEl.addEventListener('paste', function (e) {
+                    // Se não houver texto selecionado, comportamento padrão
+                    if (inputEl.selectionStart === inputEl.selectionEnd) return;
+
+                    const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+
+                    // Regex simples para verificar se é URL (inicia com http:// ou https://)
+                    const urlRegex = /^(http|https):\/\/[^ "]+$/i;
+
+                    if (urlRegex.test(pastedData.trim())) {
+                        e.preventDefault();
+
+                        const start = inputEl.selectionStart;
+                        const end = inputEl.selectionEnd;
+                        const selectedText = inputEl.value.substring(start, end);
+
+                        // Formata com markdown
+                        const markdownLink = `[${selectedText}](${pastedData.trim()})`;
+
+                        // Insere no input
+                        const textBefore = inputEl.value.substring(0, start);
+                        const textAfter = inputEl.value.substring(end);
+
+                        inputEl.value = textBefore + markdownLink + textAfter;
+
+                        // Ajusta o cursor para logo após o link inserido
+                        inputEl.selectionStart = inputEl.selectionEnd = start + markdownLink.length;
+
+                        // Dispara evento de input para atualizar previews se houver
+                        inputEl.dispatchEvent(new Event('input'));
+
+                        showToast('Link inserido com formato Markdown!', 'success');
+                    }
+                });
+            });
+        }
 
         /**
          * Alterna o modo escuro (Dark Mode)
@@ -688,7 +814,7 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
                     if (currentQuestion) {
                         items.push({
                             question: currentQuestion,
-                            answer: currentAnswerBuffer.join('<br>').trim()
+                            answer: currentAnswerBuffer.join('\n').trim()
                         });
                     }
                     // Inicia nova pergunta
@@ -706,7 +832,7 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
             if (currentQuestion && currentAnswerBuffer.length > 0) {
                 items.push({
                     question: currentQuestion,
-                    answer: currentAnswerBuffer.join('<br>').trim()
+                    answer: currentAnswerBuffer.join('\n').trim()
                 });
             }
 
@@ -716,15 +842,61 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
             }
 
             // --- Geração do HTML Estrutural ---
+            const layoutMode = document.querySelector('input[name="layoutMode"]:checked').value;
             let htmlInner = '';
-            if (title) {
-                htmlInner += `<h2 class="faq-title">${escapeHtml(title)}</h2>\n\n`;
-            }
+            let generateScript = '';
 
-            items.forEach(item => {
-                // Monta estrutura <details><summary>
-                htmlInner += `<details class="faq-item"><summary class="faq-question">${escapeHtml(item.question)}</summary>\n\n<div class="faq-answer">${formatAnswer(item.answer)}</div>\n</details>\n\n`;
-            });
+            if (layoutMode === 'accordion') {
+                // MODO ACCORDION (Padrão)
+                if (title) {
+                    htmlInner += `<h2 class="faq-title">${formatMarkdownInline(title)}</h2>\n\n`;
+                }
+
+                items.forEach(item => {
+                    // Monta estrutura <details><summary>
+                    htmlInner += `<details class="faq-item"><summary class="faq-question">${formatMarkdownInline(item.question)}</summary>\n\n<div class="faq-answer">${formatAnswer(item.answer)}</div>\n</details>\n\n`;
+                });
+
+                // HTML Final para copiar (Layout 1)
+                htmlInner = `<div class="faq-container">\n${htmlInner}</div>`;
+
+            } else {
+                // MODO TEXTO EXPANDÍVEL (SEO) - PURE CSS VERSION
+                /* Estrutura:
+                   <div class="seo-text-container">
+                       <input type="checkbox" class="seo-toggle" id="uniqueId">
+                       <div class="seo-content">
+                           <h2>Título</h2>
+                           ...
+                       </div>
+                       <label for="uniqueId" class="seo-btn-label"></label>
+                   </div>
+                */
+
+                // Gera ID único para o checkbox
+                const uniqueId = 'seo-toggle-' + Math.random().toString(36).substr(2, 9);
+
+                let contentInner = '';
+                if (title) {
+                    contentInner += `<h2>${formatMarkdownInline(title)}</h2>\n\n`;
+                }
+
+                items.forEach(item => {
+                    contentInner += `<h3>${formatMarkdownInline(item.question)}</h3>\n<div>${formatAnswer(item.answer)}</div>\n\n`;
+                });
+
+                htmlInner = `
+<div class="seo-text-container">
+  <input type="checkbox" class="seo-toggle" id="${uniqueId}">
+  <div class="seo-content">
+    ${contentInner.trim()}
+  </div>
+  <label for="${uniqueId}" class="seo-btn-label"></label>
+</div>`;
+
+                // Limpa script pois não é mais necessário
+                generateScript = '';
+            }
 
             // --- Preparação do CSS ---
             let cssBlock = '';
@@ -738,8 +910,9 @@ Varia de acordo com a concorrência e autoridade do domínio."></textarea>
 
             // HTML Final para copiar
             const finalHtml = `${cssBlock}
-<div class="faq-container">
-${htmlInner}</div>`;
+${htmlInner}
+
+${generateScript}`;
 
             // --- Geração do JSON-LD (Schema.org) ---
             const schemaData = {
@@ -762,8 +935,9 @@ ${htmlInner}</div>`;
             updatePreviewStyles(); // Assegura estilos atualizados
 
             // Renderiza o HTML no container de preview
-            previewContainer.innerHTML = `<div class="faq-container" style="width: 100%;">
+            previewContainer.innerHTML = `<div style="width: 100%;">
                 ${htmlInner}
+                ${generateScript}
             </div>`;
 
             // Preenche os textareas de saída
@@ -810,6 +984,7 @@ ${htmlInner}</div>`;
   font-family: 'Open Sans', Arial, sans-serif;
   box-sizing: border-box;
 }
+
 
 /* Título da Seção */
 .faq-title {
@@ -888,10 +1063,103 @@ details[open] .faq-answer {
   padding-top: 15px;
 }
 
+/* =========================================
+   ESTILOS PARA MODO TEXTO EXPANDÍVEL (SEO)
+   ========================================= */
+.seo-text-container {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 20px auto;
+  max-width: 1200px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Oculta o checkbox nativo */
+.seo-toggle {
+  display: none;
+}
+
+.seo-content {
+  color: #444;
+  line-height: 1.8;
+  font-size: 16px;
+  
+  /* Estado Inicial (Fechado) */
+  max-height: 250px;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.5s ease;
+  
+  /* Máscara de gradiente */
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+/* Quando o checkbox está marcado (Aberto) */
+.seo-toggle:checked ~ .seo-content {
+  max-height: 5000px; /* Valor alto o suficiente */
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Botão (Label) */
+.seo-btn-label {
+  display: block;
+  width: fit-content;
+  margin: 20px auto 0;
+  background-color: #0044cc; /* Azul Havan-like */
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.seo-btn-label:hover {
+  background-color: #003399;
+  transform: translateY(-2px);
+}
+
+/* Texto do botão muda conforme estado */
+.seo-btn-label::after {
+  content: "Ler mais";
+}
+
+.seo-toggle:checked ~ .seo-btn-label::after {
+  content: "Ler menos";
+}
+
+.seo-content h2 {
+  font-size: 28px;
+  color: #e65100;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.seo-content h3 {
+  font-size: 20px;
+  color: #2c3e50;
+  margin-top: 25px;
+  margin-bottom: 10px;
+}
+
 /* Ajuste Mobile */
 @media (max-width: 768px) {
   .faq-title { font-size: 20px; }
   summary.faq-question { font-size: 15px; padding: 15px; }
+  .seo-text-container { padding: 20px; }
+  .seo-content h2 { font-size: 22px; }
 }`;
             document.getElementById('customCss').value = defaultCSS;
             updatePreviewStyles();
@@ -912,9 +1180,22 @@ details[open] .faq-answer {
                 .replace(/'/g, "&#039;");
         }
 
-        // Formata a resposta (pode ser expandido no futuro para Markdown simples)
+        // Formata a resposta usando marked para converter Markdown em HTML
         function formatAnswer(text) {
+            // Se o marked estiver carregado, usa ele. Senão, retorna o texto original.
+            if (typeof marked !== 'undefined') {
+                return marked.parse(text);
+            }
             return text;
+        }
+
+        // Formata Markdown Inline (para Títulos e Perguntas)
+        // Evita blocos como <p>
+        function formatMarkdownInline(text) {
+            if (typeof marked !== 'undefined') {
+                return marked.parseInline(text);
+            }
+            return escapeHtml(text);
         }
 
         // Copia o conteúdo de um elemento para a área de transferência usando API moderna
