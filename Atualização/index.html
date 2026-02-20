@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RichFAQ - Ferramenta para criação de FAQ's em Accordion e Texto Expansível</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="richfaq-logo.png">
+    <!-- 
+        Evita indexação pelos buscadores, pois é uma ferramenta interna.
+    -->
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Importando a biblioteca marked para processar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify para sanitizar HTML gerado a partir do Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+    <style>
+        /* =========================================
+           ESTILOS GERAIS E VARIÁVEIS CSS
+           ========================================= */
+
+        :root {
+            /* Paleta de Cores Premium (Laranja & Dark Grey) */
+            --primary-color: #0044cc;
+            /* Azul da Logo RichFAQ */
+            --primary-hover: #003399;
+            /* Azul Mais Escuro */
+            --secondary-color: #2c3e50;
+            /* Azul/Cinza Escuro Profundo */
+
+            --bg-color: #f8f9fa;
+            /* Fundo Quase Branco */
+            --container-bg: #ffffff;
+            /* Fundo Branco Puro */
+
+            --text-color: #333333;
+            /* Cinza Escuro para Texto */
+            --text-muted: #666666;
+            /* Cinza Médio para Texto Secundário */
+
+            --border-color: #e0e0e0;
+            /* Bordas Sutis */
+            --input-bg: #ffffff;
+            /* Fundo de Input Branco */
+
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            --font-code: 'Consolas', 'Monaco', monospace;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border-color: #333333;
+            --input-bg: #2d2d2d;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+            /* Ajuste da cor primária no dark mode se necessário */
+            --primary-color: #448aff;
+            --primary-hover: #2979ff;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* =========================================
+           LAYOUT PRINCIPAL
+           ========================================= */
+        .generator-container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Botão Dark Mode */
+        .dark-mode-toggle {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .dark-mode-toggle:hover {
+            background-color: var(--bg-color);
+            transform: rotate(15deg);
+        }
+
+        /* Cabeçalho Personalizado RichFAQ */
+        .app-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-logo {
+            max-width: 280px;
+            height: auto;
+            margin-bottom: 15px;
+            display: block;
+            border-radius: var(--radius-lg);
+            /* Bordas Arredondadas */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            /* Sombra Suave */
+        }
+
+        /* Subtítulo descritivo */
+        .app-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin: 0;
+            max-width: 600px;
+        }
+
+        /* Título Principal (Hidden ou Integrado) 
+           Mantemos a classe antiga para compatibilidade se algo usar, 
+           mas agora estilizada para ser secundária ou removida visualmente se a logo já tiver texto.
+           Neste caso, vamos usá-la como texto complementar.
+        */
+        h1.app-title {
+            font-size: 1.5rem;
+            /* Menor que antes */
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: none;
+            -webkit-text-fill-color: var(--text-color);
+            color: var(--text-color);
+            display: none;
+            /* Ocultando pois a logo RichFAQ já contém o nome */
+        }
+
+        /* =========================================
+           ÁREA DE INPUTS
+           ========================================= */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-family: inherit;
+            box-sizing: border-box;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(230, 81, 0, 0.1);
+        }
+
+        .input-group textarea {
+            min-height: 250px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        /* Botões */
+        .btn-generate {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(230, 81, 0, 0.2);
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(230, 81, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #34495e;
+            opacity: 0.9;
+        }
+
+        .btn-danger {
+            background-color: #d32f2f;
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
+        }
+
+        /* =========================================
+           ÁREA DE OUTPUTS
+           ========================================= */
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .output-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: background-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .output-box h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: var(--text-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        /* Área de código */
+        .code-textarea {
+            width: 100%;
+            height: 120px;
+            font-family: var(--font-code);
+            font-size: 13px;
+            background: #23241f;
+            /* Monokai-like */
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            resize: vertical;
+            border: 1px solid #111;
+            line-height: 1.4;
+        }
+
+        /* Preview Container */
+        #previewContainer {
+            min-height: 300px;
+            background-color: var(--container-bg);
+            padding: 24px;
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+        }
+
+        /* =========================================
+           TOAST NOTIFICATIONS
+           ========================================= */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--secondary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease forwards;
+            max-width: 350px;
+        }
+
+        .toast.success {
+            background-color: #2e7d32;
+        }
+
+        /* Verde para sucesso */
+        .toast.error {
+            background-color: #c62828;
+        }
+
+        /* Vermelho para erro */
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
+        /* Reponsividade */
+        @media (max-width: 992px) {
+            .generator-container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            h1.app-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="generator-container">
+        <!-- Botão para alternar tema -->
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Alternar Modo Escuro">🌓</button>
+
+        <header class="app-header">
+            <img src="richfaq-logo.png" alt="RichFAQ Logo" class="app-logo">
+            <h1 class="app-title">RichFAQ</h1>
+            <p class="app-subtitle">Ferramenta para criação de Faq's em Accordion e Texto Expansível</p>
+        </header>
+
+        <!-- COLUNA DA ESQUERDA: Inputs -->
+        <div class="input-section">
+            <!-- Seleção de Modo -->
+            <div class="input-group"
+                style="background: var(--bg-color); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <label style="margin-bottom: 10px;">Tipo de Layout</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                        <input type="radio" name="layoutMode" value="accordion" checked style="width: auto;">
+                        Accordion / FAQ
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                        <input type="radio" name="layoutMode" value="seo-text" style="width: auto;"
+                            onchange="updateCssGuide()">
+                        Texto Expandível / SEO
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="faqTitle">Título da Seção</label>
+                <input type="text" id="faqTitle" placeholder="Ex: Perguntas Frequentes - SEO">
+            </div>
+
+            <div class="input-group">
+                <label for="faqContent">Perguntas e Respostas</label>
+                <textarea id="faqContent" placeholder="Cole aqui seu conteúdo.
+O sistema detectará automaticamente as perguntas (linhas terminando em ?) e as respostas (linhas seguintes).
+
+Suporta Markdown nas respostas!
+
+Exemplo:
+O que é tráfego orgânico?
+É o conjunto de visitas geradas espontaneamente, sem anúncios.
+
+*   Vantagem 1
+*   Vantagem 2
+
+Quanto tempo demora para ranquear?
+Varia de acordo com a **concorrência** e autoridade do domínio."></textarea>
+                <small style="color: var(--text-muted); margin-top: 8px; display: block; font-size: 0.85rem;">
+                    💡 Dica: Deixe uma linha em branco entre cada par de pergunta/resposta.
+                </small>
+            </div>
+
+            <!-- Guia de Classes Completo -->
+            <div
+                style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: var(--radius-md); border: 1px solid rgba(255, 152, 0, 0.2); margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: #e65100; font-size: 14px; margin-bottom: 8px;">🛠️ Todas as Classes CSS
+                    Geradas</h4>
+
+                <!-- Guia Accordion -->
+                <ul id="guideAccordion"
+                    style="font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.6; margin: 0;">
+                    <li><code>.faq-container</code>: Div principal que envolve tudo</li>
+                    <li><code>.faq-title</code>: Tag &lt;h2&gt; do título da seção</li>
+                    <li><code>.faq-item</code>: Tag &lt;details&gt; de cada pergunta</li>
+                    <li><code>.faq-question</code>: Tag &lt;summary&gt; (Texto da dúvida)</li>
+                    <li><code>.faq-answer</code>: Div interna com a resposta</li>
+                    <li><code>details[open]</code>: Seletor para estado "aberto"</li>
+                    <li><code>summary::-webkit-details-marker</code>: Marcador padrão (oculto)</li>
+                </ul>
+
+                <!-- Guia SEO Text -->
+                <ul id="guideSeo"
+                    style="display: none; font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.6; margin: 0;">
+                    <li><code>.seo-text-container</code>: Container principal do box</li>
+                    <li><code>.seo-toggle</code>: Checkbox oculto (controla estado)</li>
+                    <li><code>.seo-content</code>: Área do texto (expande/contrai)</li>
+                    <li><code>.seo-btn-label</code>: O botão "Ler mais/menos" (Label)</li>
+                    <li><code>.seo-question</code>: Classe para cada título de bloco no texto expandível (h3)</li>
+                    <li><code>.seo-answer</code>: Classe para cada bloco de resposta no texto expandível</li>
+                    <li><code>.seo-content h2/h3</code>: Títulos e Subtítulos (padrão)</li>
+                </ul>
+            </div>
+
+            <!-- Área de Configuração de Estilos e Salvamento -->
+            <div class="input-group">
+                <label for="styleConfig">Configuração de Estilo</label>
+                <div
+                    style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                        <input type="checkbox" id="autoNormalizeLinks" checked style="width:auto;">
+                        <label for="autoNormalizeLinks" style="margin:0; font-size:13px;">Auto-ajustar links externos (abrir em nova aba + rel=noopener noreferrer)</label>
+                    </div>
+
+                    <!-- Controles de Salvar/Carregar -->
+                    <div
+                        style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+                        <label
+                            style="font-size: 13px; font-weight: 700; color: var(--text-color); display: block; margin-bottom: 12px; text-transform: uppercase;">
+                            💾 Gerenciar Estilos
+                        </label>
+                        <div
+                            style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                            <input type="text" id="styleNameInput" placeholder="Nome do estilo (ex: Azul Moderno)"
+                                style="flex: 1; min-width: 150px;">
+                            <button onclick="saveCurrentStyle()" class="btn-secondary">Salvar</button>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="savedStylesSelect" onchange="loadSelectedStyle()" style="flex: 1;">
+                                <option value="">--- Carregar Estilo Salvo ---</option>
+                            </select>
+                            <button onclick="deleteSelectedStyle()" class="btn-danger">Excluir</button>
+                        </div>
+                    </div>
+
+                    <!-- Editor de CSS -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label for="customCss"
+                            style="font-size: 13px; font-weight: 700; color: var(--text-color); margin: 0; text-transform: uppercase;">
+                            🎨 Editor CSS
+                        </label>
+                        <button onclick="(function(){ const m=document.querySelector('input[name=layoutMode]:checked').value; loadDefaultCSS(m); })()"
+                            style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; font-weight: 600; padding: 0;">
+                            ↺ Restaurar Padrão
+                        </button>
+                    </div>
+
+                    <textarea id="customCss" oninput="updatePreviewStyles()" placeholder="Seu CSS personalizado..."
+                        style="min-height: 150px; font-family: var(--font-code); font-size: 12px;"></textarea>
+                </div>
+            </div>
+
+            <button class="btn-generate" onclick="generateFAQ()">✨ Gerar Código FAQ</button>
+        </div>
+
+        <!-- COLUNA DA DIREITA: Outputs -->
+        <div class="output-section">
+            <div class="output-box" id="previewBox">
+                <h3>👁️ Pré-visualização</h3>
+                <div id="previewContainer">
+                    <iframe id="previewIframe" title="Preview FAQ" style="width:100%; min-height:300px; height:100%; border:0; background: transparent;"></iframe>
+                </div>
+            </div>
+
+            <div class="output-box">
+                <h3>💻 Código HTML</h3>
+                <textarea id="htmlOutput" class="code-textarea" readonly onclick="this.select()"></textarea>
+                <button onclick="copyToClipboard('htmlOutput')" class="btn-secondary"
+                    style="margin-top: 10px; align-self: flex-start;">
+                    📋 Copiar HTML
+                </button>
+            </div>
+
+            <div class="output-box">
+                <h3>🔍 Dados Estruturados (JSON-LD)</h3>
+                <textarea id="jsonOutput" class="code-textarea" readonly onclick="this.select()"></textarea>
+                <button onclick="copyToClipboard('jsonOutput')" class="btn-secondary"
+                    style="margin-top: 10px; align-self: flex-start;">
+                    📋 Copiar JSON
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container de Notificações (Toasts) -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        /**
+         * Inicialização da Página
+         * Carrega preferências salvas, estilos e configura o estado inicial.
+         */
+        window.onload = function () {
+            loadSavedStylesList(); // Popula o dropdown com estilos do LocalStorage
+
+            // Verifica preferência de Dark Mode salva
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Se textarea estiver vazia, carrega o CSS padrão para o modo atual
+            if (!document.getElementById('customCss').value) {
+                const initialMode = document.querySelector('input[name="layoutMode"]:checked').value;
+                loadDefaultCSS(initialMode);
+            }
+
+            // Gera o preview inicial (aplica o CSS)
+            updatePreviewStyles();
+
+            // Configura o marked para suporte máximo
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    headerIds: true,
+                    mangle: false
+                });
+            }
+
+            // Inicializa o Smart Paste
+            initSmartPaste();
+
+            // Inicializa acessibilidade e comportamento dos detalhes (accordion)
+            setupDetailsAccessibility();
+
+            // Adiciona listener para o radio 'accordion' também para garantir
+            document.querySelectorAll('input[name="layoutMode"]').forEach(radio => {
+                radio.addEventListener('change', updateCssGuide);
+            });
+
+            // Inicializa guia correto
+            updateCssGuide();
+        };
+
+            // Timeout para debounce ao aplicar CSS no preview
+            let previewStyleTimeout = null;
+
+        /**
+         * Atualiza o guia de classes CSS com base no modo selecionado
+         */
+        function updateCssGuide() {
+            const mode = document.querySelector('input[name="layoutMode"]:checked').value;
+            const guideAccordion = document.getElementById('guideAccordion');
+            const guideSeo = document.getElementById('guideSeo');
+            const jsonBox = document.getElementById('jsonOutput')?.closest('.output-box');
+
+            if (mode === 'accordion') {
+                guideAccordion.style.display = 'block';
+                guideSeo.style.display = 'none';
+                if (jsonBox) jsonBox.style.display = '';
+            } else {
+                guideAccordion.style.display = 'none';
+                guideSeo.style.display = 'block';
+                if (jsonBox) jsonBox.style.display = 'none';
+            }
+            // Auto-swap default CSS for the selected mode if appropriate
+            autoSwapCss(mode);
+        }
+
+        // Return default CSS string for a given mode
+        function getDefaultCss(mode) {
+            if (mode === 'seo-text') {
+                return `/* Texto Expandivel - SEO */
+.seo-text-container {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 20px auto;
+  max-width: 1200px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.seo-toggle { display: none; }
+
+.seo-content {
+  color: #444;
+  line-height: 1.8;
+  font-size: 16px;
+  max-height: 250px;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.5s ease;
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.seo-toggle:checked ~ .seo-content { max-height: 5000px; -webkit-mask-image: none; mask-image: none; }
+
+.seo-btn-label { display:block; width:fit-content; margin:20px auto 0; background:#0044cc; color:#fff; padding:10px 30px; border-radius:20px; font-weight:700; }
+
+.seo-question { font-size:18px; font-weight:700; color:#2c3e50; margin-top:18px; }
+.seo-answer { color:#444; margin-bottom:18px; font-size:15px; line-height:1.7; }
+
+@media (max-width:768px){ .seo-text-container{padding:20px;} .seo-content h2{font-size:22px;} }
+`;
+            }
+
+            // default to accordion CSS
+            return `/* Accordion - FAQ */
+.faq-container { width:100%; max-width:1200px; margin:20px auto; font-family: 'Open Sans', Arial, sans-serif; box-sizing: border-box; }
+.faq-title { font-size:24px; color:#e65100; font-weight:700; margin-bottom:25px; text-transform:uppercase; border-bottom:2px solid #f2f2f2; padding-bottom:10px; }
+.faq-item { background:#fff; border:1px solid #e0e0e0; margin-bottom:10px; border-radius:8px; transition:all 0.3s ease; }
+.faq-item:hover{ border-color:#e65100; box-shadow:0 4px 6px rgba(0,0,0,0.05);} .faq-item[open]{ border-color:#ff9800; background:#fffbf5; }
+.faq-question{ padding:18px 20px; font-weight:600; font-size:16px; color:#333; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.faq-question::-webkit-details-marker{ display:none; }
+.faq-question::after{ content:'+'; font-size:22px; color:#e65100; font-weight:bold; transition:transform 0.2s; }
+.faq-item[open] .faq-question::after{ content:'-'; transform:rotate(180deg); }
+.faq-answer{ padding:0 20px 20px 20px; color:#555; font-size:14px; line-height:1.6; border-top:1px solid transparent; }
+.faq-item[open] .faq-answer{ border-top:1px solid #ffe0b2; padding-top:15px; }
+@media (max-width:768px){ .faq-title{font-size:20px;} .faq-question{font-size:15px;padding:15px;} }
+`;
+        }
+
+        // Auto-swap CSS in the editor when mode changes. Prompt if user has custom CSS.
+        function autoSwapCss(mode) {
+            try {
+                const textarea = document.getElementById('customCss');
+                if (!textarea) return;
+                const current = (textarea.value || '').trim();
+                const newDefault = (getDefaultCss(mode) || '').trim();
+                const otherMode = mode === 'accordion' ? 'seo-text' : 'accordion';
+                const otherDefault = (getDefaultCss(otherMode) || '').trim();
+
+                // If empty or currently equal to the other default, replace silently
+                if (!current || current === otherDefault || current === newDefault) {
+                    textarea.value = newDefault;
+                    updatePreviewStyles();
+                    return;
+                }
+
+                // Otherwise ask user before overwriting
+                if (confirm('Substituir o CSS atual pelo estilo padrão para o modo "' + (mode === 'accordion' ? 'Accordion' : 'Texto Expandível') + '"?')) {
+                    textarea.value = newDefault;
+                    updatePreviewStyles();
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // Cria IDs únicos e sincroniza aria-expanded para todos os <details>
+        function setupDetailsAccessibility() {
+            // Delegation: observe current and future details
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll('.faq-item').forEach((detailsEl, idx) => {
+                    const summary = detailsEl.querySelector('summary');
+                    if (!summary) return;
+                    // Ensure unique id on details and controlled region
+                    if (!detailsEl.id) detailsEl.id = 'faq-item-' + idx + '-' + Math.random().toString(36).slice(2, 8);
+                    const contentId = detailsEl.id + '-panel';
+                    const summaryId = detailsEl.id + '-summary';
+                    summary.id = summary.id || summaryId;
+                    // ensure panel wrapper has id
+                    const answer = detailsEl.querySelector('.faq-answer');
+                    if (answer) answer.id = answer.id || contentId;
+
+                    summary.setAttribute('aria-controls', answer ? answer.id : '');
+                    summary.setAttribute('role', 'button');
+                    summary.setAttribute('aria-expanded', detailsEl.open ? 'true' : 'false');
+
+                    // Sync toggle on change
+                    detailsEl.addEventListener('toggle', () => {
+                        summary.setAttribute('aria-expanded', detailsEl.open ? 'true' : 'false');
+                    });
+                });
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            // Run once immediately
+            document.querySelectorAll('.faq-item').forEach((d, i) => {
+                const s = d.querySelector('summary');
+                if (!s) return;
+                if (!d.id) d.id = 'faq-item-' + i + '-' + Math.random().toString(36).slice(2, 8);
+                const panel = d.querySelector('.faq-answer');
+                if (panel) panel.id = panel.id || d.id + '-panel';
+                s.id = s.id || d.id + '-summary';
+                s.setAttribute('aria-controls', panel ? panel.id : '');
+                s.setAttribute('role', 'button');
+                s.setAttribute('aria-expanded', d.open ? 'true' : 'false');
+                d.addEventListener('toggle', () => s.setAttribute('aria-expanded', d.open ? 'true' : 'false'));
+            });
+        }
+
+        /**
+         * Inicializa o recurso de "Smart Paste" para links em Markdown.
+         * Ao colar uma URL sobre um texto selecionado, transforma em [texto](url).
+         * Agora aplica-se tanto ao TEXTAREA de conteúdo quanto ao INPUT de título.
+         */
+        function initSmartPaste() {
+            const inputs = [
+                document.getElementById('faqContent'),
+                document.getElementById('faqTitle')
+            ];
+
+            inputs.forEach(inputEl => {
+                if (!inputEl) return;
+
+                inputEl.addEventListener('paste', function (e) {
+                    // Se não houver texto selecionado, comportamento padrão
+                    if (inputEl.selectionStart === inputEl.selectionEnd) return;
+
+                    const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+
+                    // Regex simples para verificar se é URL (inicia com http:// ou https://)
+                    const urlRegex = /^(http|https):\/\/[^ "]+$/i;
+
+                    if (urlRegex.test(pastedData.trim())) {
+                        e.preventDefault();
+
+                        const start = inputEl.selectionStart;
+                        const end = inputEl.selectionEnd;
+                        const selectedText = inputEl.value.substring(start, end);
+
+                        // Formata com markdown
+                        const markdownLink = `[${selectedText}](${pastedData.trim()})`;
+
+                        // Insere no input
+                        const textBefore = inputEl.value.substring(0, start);
+                        const textAfter = inputEl.value.substring(end);
+
+                        inputEl.value = textBefore + markdownLink + textAfter;
+
+                        // Ajusta o cursor para logo após o link inserido
+                        inputEl.selectionStart = inputEl.selectionEnd = start + markdownLink.length;
+
+                        // Dispara evento de input para atualizar previews se houver
+                        inputEl.dispatchEvent(new Event('input'));
+
+                        showToast('Link inserido com formato Markdown!', 'success');
+                    }
+                });
+            });
+        }
+
+        /**
+         * Alterna o modo escuro (Dark Mode)
+         * Adiciona/remove classe no body e salva preferência no LocalStorage.
+         */
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        /* =========================================
+           SISTEMA DE NOTIFICAÇÕES (TOAST)
+           ========================================= */
+
+        /**
+         * Exibe uma notificação flutuante (Toast)
+         * @param {string} message - A mensagem a ser exibida
+         * @param {string} type - 'success' ou 'error'
+         */
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+
+            // Cria o elemento do toast
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            // Define ícone baseado no tipo
+            const icon = type === 'success' ? '✅' : '⚠️';
+
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Remove o toast após 3 segundos
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease forwards';
+                toast.addEventListener('animationend', () => {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+
+        /* =========================================
+           SISTEMA DE PAGAMENTO DE ESTILOS (LocalStorage)
+           ========================================= */
+
+        /**
+         * Salva o CSS atual no LocalStorage com o nome fornecido.
+         */
+        function saveCurrentStyle() {
+            const name = document.getElementById('styleNameInput').value.trim();
+            const css = document.getElementById('customCss').value;
+
+            if (!name) {
+                showToast('Por favor, digite um nome para o estilo.', 'error');
+                return;
+            }
+
+            if (!css) {
+                showToast('O campo de CSS está vazio.', 'error');
+                return;
+            }
+
+            // Recupera objeto de estilos ou cria novo
+            let savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+
+            // Salva/Sobrescreve a chave com o nome do estilo
+            savedStyles[name] = css;
+            localStorage.setItem('faqSavedStyles', JSON.stringify(savedStyles));
+
+            showToast(`Estilo "${name}" salvo com sucesso!`, 'success');
+            loadSavedStylesList(); // Atualiza a lista visual
+
+            // Seleciona o estilo recém-salvo no dropdown
+            document.getElementById('savedStylesSelect').value = name;
+        }
+
+        /**
+         * Carrega a lista de estilos salvos no elemento <select>.
+         */
+        function loadSavedStylesList() {
+            const select = document.getElementById('savedStylesSelect');
+            const savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+
+            // Reseta opções, mantendo apenas a padrão
+            select.innerHTML = '<option value="">--- Carregar Estilo Salvo ---</option>';
+
+            // Cria uma opção para cada estilo salvo
+            Object.keys(savedStyles).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        /**
+         * Aplica o estilo selecionado no dropdown ao editor e preview.
+         */
+        function loadSelectedStyle() {
+            const select = document.getElementById('savedStylesSelect');
+            const name = select.value;
+
+            if (!name) return;
+
+            const savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+            const css = savedStyles[name];
+
+            if (css) {
+                document.getElementById('customCss').value = css;
+                updatePreviewStyles();
+                // Preenche o input de nome para facilitar edição
+                document.getElementById('styleNameInput').value = name;
+                showToast(`Estilo "${name}" carregado.`, 'success');
+            }
+        }
+
+        /**
+         * Exclui o estilo atualmente selecionado.
+         */
+        function deleteSelectedStyle() {
+            const select = document.getElementById('savedStylesSelect');
+            const name = select.value;
+
+            if (!name) {
+                showToast('Selecione um estilo para excluir.', 'error');
+                return;
+            }
+
+            if (confirm(`Tem certeza que deseja excluir o estilo "${name}"?`)) {
+                let savedStyles = JSON.parse(localStorage.getItem('faqSavedStyles') || '{}');
+                delete savedStyles[name];
+                localStorage.setItem('faqSavedStyles', JSON.stringify(savedStyles));
+
+                loadSavedStylesList();
+                showToast('Estilo excluído.', 'success');
+                document.getElementById('styleNameInput').value = '';
+            }
+        }
+
+        /* =========================================
+           LÓGICA PRINCIPAL DO GERADOR
+           ========================================= */
+
+        /**
+         * Função principal que processa o texto, gera HTML e JSON-LD.
+         */
+        function generateFAQ() {
+            const title = document.getElementById('faqTitle').value.trim();
+            const content = document.getElementById('faqContent').value;
+
+            // Validação básica
+            if (!content) {
+                showToast('Por favor, insira o conteúdo das perguntas e respostas.', 'error');
+                return;
+            }
+
+            const customCss = document.getElementById('customCss').value.trim();
+
+            // --- Parsing (Análise do Texto) ---
+            // Divide o texto em linhas e identifica perguntas pelo ponto de interrogação (?)
+            const lines = content.split('\n');
+            const items = [];
+            let currentQuestion = null;
+            let currentAnswerBuffer = [];
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return; // Pula linhas vazias
+
+                // Se termina com '?' ou é a primeira linha e ainda não temos pergunta
+                if (trimmedLine.endsWith('?') || (items.length === 0 && currentQuestion === null)) {
+                    // Se já tínhamos uma pergunta em aberto, salva ela antes de começar a nova
+                    if (currentQuestion) {
+                        items.push({
+                            question: currentQuestion,
+                            answer: currentAnswerBuffer.join('\n').trim()
+                        });
+                    }
+                    // Inicia nova pergunta
+                    currentQuestion = trimmedLine;
+                    currentAnswerBuffer = [];
+                } else {
+                    // É parte da resposta
+                    if (currentQuestion) {
+                        currentAnswerBuffer.push(trimmedLine);
+                    }
+                }
+            });
+
+            // Adiciona o último item processado
+            if (currentQuestion && currentAnswerBuffer.length > 0) {
+                items.push({
+                    question: currentQuestion,
+                    answer: currentAnswerBuffer.join('\n').trim()
+                });
+            }
+
+            if (items.length === 0) {
+                showToast('Não conseguimos identificar perguntas. Verifique se terminam com "?"', 'error');
+                return;
+            }
+
+            // --- Geração do HTML Estrutural ---
+            const layoutMode = document.querySelector('input[name="layoutMode"]:checked').value;
+            let htmlInner = '';
+            let generateScript = '';
+
+            if (layoutMode === 'accordion') {
+                // MODO ACCORDION (Padrão)
+                if (title) {
+                    htmlInner += `<h2 class="faq-title">${formatMarkdownInline(title)}</h2>\n\n`;
+                }
+
+                items.forEach(item => {
+                    // Monta estrutura <details><summary>
+                    htmlInner += `<details class="faq-item"><summary class="faq-question">${formatMarkdownInline(item.question)}</summary>\n\n<div class="faq-answer">${formatAnswer(item.answer)}</div>\n</details>\n\n`;
+                });
+
+                // HTML Final para copiar (Layout 1)
+                htmlInner = `<div class="faq-container">\n${htmlInner}</div>`;
+
+            } else {
+                // MODO TEXTO EXPANDÍVEL (SEO) - PURE CSS VERSION
+                /* Estrutura:
+                   <div class="seo-text-container">
+                       <input type="checkbox" class="seo-toggle" id="uniqueId">
+                       <div class="seo-content">
+                           <h2>Título</h2>
+                           ...
+                       </div>
+                       <label for="uniqueId" class="seo-btn-label"></label>
+                   </div>
+                */
+
+                // Gera ID único para o checkbox
+                const uniqueId = 'seo-toggle-' + Math.random().toString(36).substr(2, 9);
+
+                let contentInner = '';
+                if (title) {
+                    contentInner += `<h2>${formatMarkdownInline(title)}</h2>\n\n`;
+                }
+
+                items.forEach(item => {
+                    contentInner += `<h3 class="seo-question">${formatMarkdownInline(item.question)}</h3>\n<div class="seo-answer">${formatAnswer(item.answer)}</div>\n\n`;
+                });
+
+                                htmlInner = `
+<div class="seo-text-container">
+    <input type="checkbox" class="seo-toggle" id="${uniqueId}">
+    <div class="seo-content">
+        ${contentInner.trim()}
+    </div>
+    <label for="${uniqueId}" class="seo-btn-label"></label>
+</div>`;
+
+                // Limpa script pois não é mais necessário
+                generateScript = '';
+            }
+
+            // --- Preparação do CSS ---
+            let cssBlock = '';
+            if (customCss) {
+                // sanitize CSS before embedding for export
+                const cleanCss = sanitizeCss(customCss);
+                if (cleanCss.includes('<style')) {
+                    cssBlock = cleanCss;
+                } else {
+                    cssBlock = `<style type="text/css">\n${cleanCss}\n</style>`;
+                }
+            }
+
+            // --- Sanitiza HTML final para export (sem scripts)
+            let exportHtmlInner = htmlInner + (generateScript || '');
+            const autoNormalizeExport = !!document.getElementById('autoNormalizeLinks') && document.getElementById('autoNormalizeLinks').checked;
+            if (typeof DOMPurify !== 'undefined') {
+                exportHtmlInner = DOMPurify.sanitize(exportHtmlInner);
+            } else {
+                exportHtmlInner = sanitizeHtml(exportHtmlInner);
+            }
+
+            // Normalize anchors and images before final export (respect UI option)
+            exportHtmlInner = normalizeHtmlAttributes(exportHtmlInner, autoNormalizeExport);
+
+            // HTML Final para copiar (CSS + HTML sanitized)
+            const finalHtml = `${cssBlock}\n${exportHtmlInner}`;
+
+            // --- Geração do JSON-LD (Schema.org) - exclusivo para Accordion ---
+            let finalJson = '';
+            if (layoutMode === 'accordion') {
+                const schemaData = {
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": items.map(item => {
+                        const questionHtml = formatMarkdownInline(item.question);
+                        const answerHtml = formatAnswer(item.answer);
+                        const questionText = stripHtmlToText(questionHtml);
+                        const answerText = stripHtmlToText(answerHtml);
+
+                        return {
+                            "@type": "Question",
+                            "name": questionText,
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": answerText
+                            }
+                        };
+                    })
+                };
+
+                finalJson = `<script type="application/ld+json">\n${JSON.stringify(schemaData, null, 2)}\n<\/script>`;
+            }
+
+            // --- Atualização do Preview ---
+            const previewContainer = document.getElementById('previewContainer');
+                updatePreviewStyles(); // Assegura estilos atualizados (debounced)
+
+                // Renderiza o HTML no iframe de preview (isolando CSS do editor)
+                const iframe = document.getElementById('previewIframe');
+                const rawHtmlForPreview = htmlInner + (generateScript || '');
+                const sanitizedHtml = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(rawHtmlForPreview) : sanitizeHtml(rawHtmlForPreview);
+                // Normalize anchors (rel) and add lazy loading to images. Use UI option
+                const autoNormalize = !!document.getElementById('autoNormalizeLinks') && document.getElementById('autoNormalizeLinks').checked;
+                const normalizedHtml = normalizeHtmlAttributes(sanitizedHtml, autoNormalize);
+                const sanitizedCss = sanitizeCss(customCss || '');
+
+                if (iframe && 'srcdoc' in iframe) {
+                    // Only inject preview enhancement for Accordion mode
+                    if (layoutMode === 'accordion') {
+                        const previewEnhance = `<script>(function(){function enhance(){document.querySelectorAll('.faq-item').forEach(function(d,i){var s=d.querySelector('summary');if(!s) return; if(!d.id) d.id='pf-'+i+'-'+Math.random().toString(36).slice(2,8); var panel=d.querySelector('.faq-answer'); if(panel) panel.id = panel.id || d.id+'-panel'; s.id = s.id || d.id+'-summary'; s.setAttribute('role','button'); s.setAttribute('aria-controls', panel?panel.id:''); s.setAttribute('aria-expanded', d.open? 'true':'false'); d.addEventListener('toggle', function(){ s.setAttribute('aria-expanded', d.open? 'true':'false'); });});} if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded', enhance);}else{enhance();}})();<\/script>`;
+                        const src = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{box-sizing:border-box;margin:0;padding:0;background:transparent} ${sanitizedCss}</style></head><body><div style="padding:12px">${normalizedHtml}</div>${previewEnhance}</body></html>`;
+                        iframe.srcdoc = src;
+                    } else {
+                        // no enhancement for seo-text
+                        const src = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{box-sizing:border-box;margin:0;padding:0;background:transparent} ${sanitizedCss}</style></head><body><div style="padding:12px">${normalizedHtml}</div></body></html>`;
+                        iframe.srcdoc = src;
+                    }
+                } else {
+                    // Fallback: insere no container (antigo comportamento)
+                    previewContainer.innerHTML = `<div style="width: 100%;">${normalizedHtml}</div>`;
+                    // também aplica css no documento principal como antes
+                    const existingStyle = document.getElementById('preview-custom-style');
+                    if (existingStyle) existingStyle.remove();
+                    if (sanitizedCss && sanitizedCss.trim() !== '') {
+                        const styleEl = document.createElement('style');
+                        styleEl.id = 'preview-custom-style';
+                        styleEl.textContent = sanitizedCss.replace(/<\/?>style[^>]*>/gi, '');
+                        document.head.appendChild(styleEl);
+                    }
+                }
+
+            // Preenche os textareas de saída
+            document.getElementById('htmlOutput').value = finalHtml;
+            document.getElementById('jsonOutput').value = finalJson;
+
+            showToast('FAQ gerado com sucesso!', 'success');
+
+            // Scroll suave até o preview
+            document.getElementById('previewBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        /**
+         * Atualiza os estilos <style> no cabeçalho para refletir o editor CSS em tempo real.
+         * Usado tanto no Preview quanto na inicialização.
+         */
+        function updatePreviewStyles() {
+            // Aplica CSS no iframe de preview (debounced) e faz fallback para o documento principal
+            clearTimeout(previewStyleTimeout);
+            previewStyleTimeout = setTimeout(() => {
+                const customCss = document.getElementById('customCss').value || '';
+                const cleanCss = sanitizeCss(customCss);
+
+                const iframe = document.getElementById('previewIframe');
+                if (iframe && iframe.contentDocument) {
+                    try {
+                        const doc = iframe.contentDocument;
+                        let existing = doc.getElementById('preview-custom-style');
+                        if (existing) existing.remove();
+                        if (cleanCss && cleanCss.trim() !== '') {
+                            const styleEl = doc.createElement('style');
+                            styleEl.id = 'preview-custom-style';
+                            styleEl.textContent = cleanCss;
+                            (doc.head || doc.getElementsByTagName('head')[0] || doc.documentElement).appendChild(styleEl);
+                        }
+                    } catch (e) {
+                        // se houver problema com iframe, aplica no documento principal
+                        const existingStyle = document.getElementById('preview-custom-style');
+                        if (existingStyle) existingStyle.remove();
+                        if (cleanCss && cleanCss.trim() !== '') {
+                            const styleEl = document.createElement('style');
+                            styleEl.id = 'preview-custom-style';
+                            styleEl.textContent = cleanCss.replace(/<\/?>style[^>]*>/gi, '');
+                            document.head.appendChild(styleEl);
+                        }
+                    }
+                } else {
+                    const existingStyle = document.getElementById('preview-custom-style');
+                    if (existingStyle) existingStyle.remove();
+                    if (cleanCss && cleanCss.trim() !== '') {
+                        const styleEl = document.createElement('style');
+                        styleEl.id = 'preview-custom-style';
+                        styleEl.textContent = cleanCss.replace(/<\/?>style[^>]*>/gi, '');
+                        document.head.appendChild(styleEl);
+                    }
+                }
+            }, 180);
+        }
+
+        /**
+         * Remove tags perigosas ou instruções que possam quebrar o preview
+         */
+        function sanitizeCss(css) {
+            if (!css) return '';
+            // Remove tags <style> e <script>
+            let s = css.replace(/<style[^>]*>/gi, '').replace(/<\/style>/gi, '');
+            s = s.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+            // Remove javascript: urls
+            s = s.replace(/url\((['"]?)javascript:[^)]*\1\)/gi, '');
+            // Aviso se houver @import externo (pode não carregar por CORS)
+            if (/@import\s+(url\(|['"]?)https?:\/\//i.test(s)) {
+                showToast('Atenção: @import externo detectado no CSS. Pode não ser carregado no preview.', 'error');
+            }
+            return s;
+        }
+
+        function sanitizeHtml(html) {
+            if (!html) return '';
+            if (typeof DOMPurify !== 'undefined') {
+                return DOMPurify.sanitize(html);
+            }
+            // Fallback: remove scripts and inline event handlers
+            let h = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+            h = h.replace(/on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+            return h;
+        }
+
+        // Garante rel noopener quando target="_blank" e adiciona loading=lazy em imagens
+        function normalizeHtmlAttributes(html, autoNormalize = true) {
+            if (!html) return '';
+            const doc = document.implementation.createHTMLDocument('tmp');
+            doc.body.innerHTML = html;
+
+            // Normalize anchors
+            doc.querySelectorAll('a[href]').forEach(a => {
+                const href = a.getAttribute('href') || '';
+                const isExternal = /^(https?:)?\/\//i.test(href) && !(href.indexOf(location.origin) === 0);
+
+                if (autoNormalize && isExternal) {
+                    // set target _blank for external links
+                    a.setAttribute('target', '_blank');
+                }
+
+                // ensure rel includes noopener noreferrer when target=_blank
+                if (a.getAttribute('target') === '_blank') {
+                    const rel = (a.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
+                    if (!rel.includes('noopener')) rel.push('noopener');
+                    if (!rel.includes('noreferrer')) rel.push('noreferrer');
+                    a.setAttribute('rel', rel.join(' '));
+                }
+            });
+
+            // Add lazy loading to images without explicit loading attribute
+            doc.querySelectorAll('img:not([loading])').forEach(img => {
+                img.setAttribute('loading', 'lazy');
+            });
+
+            return doc.body.innerHTML;
+        }
+
+        
+
+        function loadDefaultCSS() {
+            const defaultCSS = `/* Container Principal */
+.faq-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  font-family: 'Open Sans', Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+
+/* Título da Seção */
+.faq-title {
+  font-size: 24px;
+  color: #e65100;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #f2f2f2;
+  padding-bottom: 10px;
+}
+
+/* Item da FAQ (Detalhes) */
+.faq-item {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  border-color: #e65100;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.faq-item[open] {
+  border-color: #ff9800;
+  background-color: #fffbf5;
+}
+
+/* Pergunta (Summary) */
+.faq-question {
+  padding: 18px 20px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Remove triângulo padrão */
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+/* Ícone Personalizado (+ / -) */
+.faq-question::after {
+  content: '+';
+  font-size: 22px;
+  color: #e65100;
+  font-weight: bold;
+  transition: transform 0.2s;
+}
+
+.faq-item[open] .faq-question::after {
+  content: '-';
+  color: #e65100;
+  transform: rotate(180deg);
+}
+
+/* Resposta */
+.faq-answer {
+  padding: 0 20px 20px 20px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.6;
+  border-top: 1px solid transparent;
+}
+
+.faq-item[open] .faq-answer {
+  border-top: 1px solid #ffe0b2;
+  padding-top: 15px;
+}
+
+/* =========================================
+   ESTILOS PARA MODO TEXTO EXPANDÍVEL (SEO)
+   ========================================= */
+.seo-text-container {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 20px auto;
+  max-width: 1200px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Oculta o checkbox nativo */
+.seo-toggle {
+  display: none;
+}
+
+.seo-content {
+  color: #444;
+  line-height: 1.8;
+  font-size: 16px;
+  
+  /* Estado Inicial (Fechado) */
+  max-height: 250px;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.5s ease;
+  
+  /* Máscara de gradiente */
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+/* Quando o checkbox está marcado (Aberto) */
+.seo-toggle:checked ~ .seo-content {
+  max-height: 5000px; /* Valor alto o suficiente */
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Botão (Label) */
+.seo-btn-label {
+  display: block;
+  width: fit-content;
+  margin: 20px auto 0;
+  background-color: #0044cc; /* Azul Havan-like */
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.seo-btn-label:hover {
+  background-color: #003399;
+  transform: translateY(-2px);
+}
+
+/* Texto do botão muda conforme estado */
+.seo-btn-label::after {
+  content: "Ler mais";
+}
+
+.seo-toggle:checked ~ .seo-btn-label::after {
+  content: "Ler menos";
+}
+
+.seo-content h2 {
+  font-size: 28px;
+  color: #e65100;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.seo-content h3 {
+  font-size: 20px;
+  color: #2c3e50;
+  margin-top: 25px;
+  margin-bottom: 10px;
+}
+
+/* Estilos específicos para elementos do Texto Expandível */
+.seo-question {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-top: 18px;
+}
+
+.seo-answer {
+    color: #444;
+    margin-bottom: 18px;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+/* Ajuste Mobile */
+@media (max-width: 768px) {
+  .faq-title { font-size: 20px; }
+  .faq-question { font-size: 15px; padding: 15px; }
+  .seo-text-container { padding: 20px; }
+  .seo-content h2 { font-size: 22px; }
+}`;
+            document.getElementById('customCss').value = defaultCSS;
+            updatePreviewStyles();
+            showToast('CSS Padrão restaurado.', 'success');
+        }
+
+        /**
+         * Utilities
+         */
+
+        // Escapa caracteres HTML para prevenir XSS e quebra de layout
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Formata a resposta usando marked para converter Markdown em HTML
+        function formatAnswer(text) {
+            if (!text) return '';
+            if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                const raw = marked.parse(text);
+                // Sanitiza permitindo tags seguras (links, imagens, lists)
+                return DOMPurify.sanitize(raw);
+            }
+            // Fallback: escapa caracteres
+            return escapeHtml(text);
+        }
+
+        // Formata Markdown Inline (para Títulos e Perguntas)
+        // Evita blocos como <p>
+        function formatMarkdownInline(text) {
+            if (!text) return '';
+            if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                const raw = marked.parseInline(text);
+                return DOMPurify.sanitize(raw);
+            }
+            return escapeHtml(text);
+        }
+
+        // Converte HTML para texto plano para uso no JSON-LD
+        function stripHtmlToText(html) {
+            if (!html) return '';
+            const doc = document.implementation.createHTMLDocument('tmp');
+            doc.body.innerHTML = html;
+            // textContent preserva quebras básicas
+            return doc.body.textContent.trim();
+        }
+
+        // Copia o conteúdo de um elemento para a área de transferência usando API moderna
+        async function copyToClipboard(elementId) {
+            const copyText = document.getElementById(elementId);
+            const textToCopy = copyText.value;
+
+            try {
+                // Tenta usar a API Clipboard moderna
+                await navigator.clipboard.writeText(textToCopy);
+                showToast('Conteúdo copiado com sucesso!', 'success');
+            } catch (err) {
+                // Fallback para o modo antigo
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);
+                try {
+                    document.execCommand("copy");
+                    showToast('Conteúdo copiado (Modo Compatibilidade)!', 'success');
+                } catch (errFallback) {
+                    showToast('Erro ao copiar. Tente manualmente.', 'error');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
